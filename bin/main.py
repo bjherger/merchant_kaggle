@@ -8,10 +8,14 @@ Code template courtesy https://github.com/bjherger/Python-starter-repo
 import logging
 import os
 import pickle
+import sqlite3
 
 import pandas
 
 from bin import lib
+
+CON = sqlite3.connect("../data/output/merchant.db")
+CUR = CON.cursor()
 
 
 def main():
@@ -31,47 +35,47 @@ def main():
 def extract():
     logging.info('Begin extract')
 
-    # Read
-    historical_transactions = pandas.read_csv(lib.get_conf('historical_transactions_path'))
-    merchants = pandas.read_csv(lib.get_conf('merchants_path'))
-    new_merchant_transactions = pandas.read_csv(lib.get_conf('new_merchant_transactions_path'))
-    sample_submission = pandas.read_csv(lib.get_conf('sample_submission_path'))
-    test = pandas.read_csv(lib.get_conf('test_path'))
-    train = pandas.read_csv(lib.get_conf('train_path'))
-
-    # Convert to pickle
-    historical_transactions.to_hdf(os.path.join(lib.get_conf('pickle_path'), 'historical_transactions.pkl'))
-    merchants.to_hdf(os.path.join(lib.get_conf('pickle_path'), 'merchants.pkl'))
-    new_merchant_transactions.to_hdf(os.path.join(lib.get_conf('pickle_path'), 'new_merchant_transactions.pkl'))
-    sample_submission.to_hdf(os.path.join(lib.get_conf('pickle_path'), 'sample_submission.pkl'))
+    # Read and convert to sql
+    pandas.read_csv(lib.get_conf('historical_transactions_path')).to_sql('historical_transactions', CON,
+                                                                         if_exists='replace')
+    pandas.read_csv(lib.get_conf('merchants_path')).to_sql('merchants', CON, if_exists='replace')
+    pandas.read_csv(lib.get_conf('new_merchant_transactions_path')).to_sql('new_merchant_transactions', CON,
+                                                                           if_exists='replace')
+    pandas.read_csv(lib.get_conf('sample_submission_path')).to_sql('sample_submission', CON, if_exists='replace')
 
     lib.archive_dataset_schemas('extract', locals(), globals())
     logging.info('End extract')
-    observations = None
-    return observations
 
 
 def transform():
     logging.info('Begin transform')
-    data_sets = [('historical_transactions',
-                  pandas.read_hdf(os.path.join(lib.get_conf('pickle_path'), 'historical_transactions.pkl'))),
-                 ('merchants', pandas.read_hdf(os.path.join(lib.get_conf('pickle_path'), 'merchants.pkl'))),
-                 ('new_merchant_transactions',
-                  pandas.read_hdf(os.path.join(lib.get_conf('pickle_path'), 'new_merchant_transactions.pkl'))),
-                 ('sample_submission',
-                  pandas.read_hdf(os.path.join(lib.get_conf('pickle_path'), 'sample_submission.pkl')))]
 
-    datatype_aggs = {'numerical': {'mean', 'min', 'max', 'median', 'std'},
-                     'categorical': {'mode'}}
+    numerical_aggs = ['MIN', 'MAX', 'AVG']
 
-    for data_set_name, data_set in data_sets:
-        for datatype_name, datatype_aggs in datatype_aggs.items():
-            variables = datatype_aggs.union(data_set)
-            data_set[variables].groupby()
+    # historical_transactions
+    vars = ['authorized_flag', 'installments', 'purchase_amount']
+    table_name = 'historical_transactions'
+    groupby_var = 'merchant_id'
 
-    lib.archive_dataset_schemas('transform', locals(), globals())
-    logging.info('End transform')
-    return observations
+    historical_transactions_aggs = create_aggs(table_name, groupby_var, vars, numerical_aggs)
+
+    # merchants
+    vars = ['numerical_1', 'numerical_2', 'avg_sales_lag3', 'avg_purchases_lag3', 'active_months_lag3',
+            'avg_sales_lag6', 'avg_purchases_lag6', 'active_months_lag6', 'avg_sales_lag12', 'avg_purchases_lag12',
+            'active_months_lag12']
+    table_name = 'merchants'
+    groupby_var = 'merchant_id'
+
+    merchant_aggs = create_aggs(table_name, groupby_var, vars, numerical_aggs)
+
+    # new_merchant_transactions
+    vars = ['authorized_flag', 'installments', 'purchase_amount']
+    table_name = 'new_merchant_transactions'
+    groupby_var = 'card_id'
+
+    new_merchant_transactions_aggs = create_aggs(table_name, groupby_var, vars, numerical_aggs)
+
+    return
 
 
 def model(observations):
@@ -111,6 +115,31 @@ def load(observations, transformation_pipeline, trained_model):
     lib.archive_dataset_schemas('load', locals(), globals())
     logging.info('End load')
     pass
+
+
+def create_aggs(table_name, gropuby_var, vars, numerical_aggs):
+    features = list()
+    for var in vars:
+        for numerical_agg in numerical_aggs:
+            variable_select = f'{numerical_agg}({var}) AS {var}_{numerical_agg.lower()}'
+            features.append(variable_select)
+
+    feature_query = ', '.join(features)
+
+    # Drop the table if it exists already
+    CUR.execute(f'DROP TABLE IF EXISTS {table_name}_agg;')
+
+    query = f"""
+
+    CREATE TABLE {table_name}_agg AS (
+        SELECT {gropuby_var}, {feature_query} 
+            FROM {table_name}
+            GROUP BY {gropuby_var}
+        );"""
+
+    logging.info(f'query: {query}')
+
+    CUR.execute(query)
 
 
 # Main section
