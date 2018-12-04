@@ -2,3 +2,44 @@ batch_prefix: b
 model_choice: m
 data_schema_dir: ../data/schemas
 output_path: ../data/output
+perform_extract: true
+perform_transform: true
+historical_transactions_path: ../data/input/historical_transactions.csv
+merchants_path: ../data/input/merchants.csv
+new_merchant_transactions_path: ../data/input/new_merchant_transactions.csv
+sample_submission_path: ../data/input/sample_submission.csv
+test_path: ../data/input/test.csv
+train_path: ../data/input/train.csv
+pickle_path: ../data/output/pickle
+numerical_vars:
+ - authorized_flag
+ - installments
+ - purchase_amount
+ - numerical_1
+ - numerical_2
+ - avg_sales_lag3
+ - avg_purchases_lag3
+ - active_months_lag3
+ - avg_sales_lag6
+ - avg_purchases_lag6
+ - active_months_lag6
+ - avg_sales_lag12
+ - avg_purchases_lag12
+ - active_months_lag12
+ - category_2
+categorical_vars:
+ - category_3
+ - category_1
+ - merchant_category_id
+ - subsector_id
+ - merchant_id
+ - city_id
+ - state_id
+ - category_2
+ - merchant_group_id
+ - subsector_id
+ - category_1
+ - category_4
+ - state_id
+datetime_vars:
+ - purchase_date

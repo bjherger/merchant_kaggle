@@ -11,3 +11,6 @@
 
 # Output files
 data/output/*
+
+# Input files
+data/input/*

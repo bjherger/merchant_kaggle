@@ -37,7 +37,7 @@ def load_confs(confs_path='../conf/conf.yaml'):
             CONFS = yaml.load(open(confs_path))
 
         except IOError:
-            logging.warn('Unable to open user conf file. Attempting to run with default values from conf template')
+            logging.warning('Unable to open user conf file. Attempting to run with default values from conf template')
 
             # Attempt to load conf from template path
             template_path = confs_path + '.template'
@@ -124,13 +124,13 @@ def archive_dataset_schemas(step_name, local_dict, global_dict):
     env_variables.update(global_dict)
 
     # Filter down to Pandas DataFrames
-    data_sets = filter(lambda (k, v): type(v) == pandas.DataFrame, env_variables.iteritems())
+    data_sets = filter(lambda x: type(x[1]) == pandas.DataFrame, env_variables.items())
     data_sets = dict(data_sets)
 
     header = pandas.DataFrame(columns=['variable', 'type', 'data_set'])
     schema_agg.append(header)
 
-    for (data_set_name, data_set) in data_sets.iteritems():
+    for (data_set_name, data_set) in data_sets.items():
         # Extract variable names
         logging.info('Working data_set: {}'.format(data_set_name))
 
