@@ -97,7 +97,7 @@ def transform():
         """
     CUR.executescript(query)
 
-    return
+    logging.info('End transform')
 
 
 def train():
@@ -130,7 +130,6 @@ def create_aggs(table_name, gropuby_var, vars, numerical_aggs):
 
     # Create aggregate table
     query = f"""
-
     CREATE TABLE {table_name}_agg AS 
         SELECT {gropuby_var}, {feature_query} 
             FROM {table_name}
