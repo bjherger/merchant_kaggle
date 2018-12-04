@@ -6,8 +6,6 @@ Code template courtesy https://github.com/bjherger/Python-starter-repo
 
 """
 import logging
-import os
-import pickle
 import sqlite3
 
 import pandas
@@ -53,7 +51,7 @@ def extract():
 def transform():
     logging.info('Begin transform')
 
-    numerical_aggs = ['MIN', 'MAX', 'AVG']
+    numerical_aggs = ['MIN', 'MAX', 'AVG', 'COUNT']
 
     # historical_transactions
     vars = ['authorized_flag', 'installments', 'purchase_amount']
@@ -86,6 +84,7 @@ def transform():
             FROM merchants_agg
                 LEFT JOIN new_merchant_transactions_agg ON merchant_id;
     """
+    logging.info(f'query:{query}')
     CUR.executescript(query)
 
     # Create card_id_lookup
@@ -95,6 +94,7 @@ def transform():
             SELECT * 
                 FROM new_merchant_transactions_agg;
         """
+    logging.info(f'query:{query}')
     CUR.executescript(query)
 
     logging.info('End transform')
@@ -120,7 +120,7 @@ def create_aggs(table_name, gropuby_var, vars, numerical_aggs):
     features = list()
     for var in vars:
         for numerical_agg in numerical_aggs:
-            variable_select = f'{numerical_agg}({var}) AS {var}_{numerical_agg.lower()}'
+            variable_select = f'{numerical_agg}({var}) AS {var}_{numerical_agg.lower()}_num_agg'
             features.append(variable_select)
 
     feature_query = ', '.join(features)

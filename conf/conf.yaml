@@ -2,7 +2,7 @@ batch_prefix: b
 model_choice: m
 data_schema_dir: ../data/schemas
 output_path: ../data/output
-perform_extract: false
+perform_extract: true
 perform_transform: true
 perform_train: true
 historical_transactions_path: ../data/input/historical_transactions.csv
